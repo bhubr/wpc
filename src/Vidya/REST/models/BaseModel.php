@@ -1,6 +1,6 @@
 <?php
-namespace Vidya;
-if( !class_exists('Vidya\BaseModel')) {
+namespace Vidya\REST;
+if( !class_exists('Vidya\REST\BaseModel')) {
 
 /**
  * Base model to represent WordPress objects

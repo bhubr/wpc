@@ -1,5 +1,5 @@
 <?php
-namespace Vidya;
+namespace Vidya\REST;
 require_once 'BaseModel.php';    
 
 

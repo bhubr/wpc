@@ -1,6 +1,6 @@
 <?php
-namespace Vidya;
-class RESTController {
+namespace Vidya\REST;
+class Controller {
 
     protected $path_prefix = '';
     protected $action_args = array();
@@ -19,6 +19,9 @@ class RESTController {
      * Store the object type (PostModel, TermModel, etc.)
      */
     protected $object_type;
+    public static function yo() {
+        echo "Yo " . __FILE__ . "\n";
+    } 
 
     /**
      * Class constructor
@@ -77,8 +80,8 @@ class RESTController {
     }
 
     function do_action() {
-        $models_path = realpath(__DIR__ . '/../models');
-        if( !class_exists( "Vidya\\{$this->object_type}" ) ) {
+        $models_path = __DIR__ . '/models';
+        if( !class_exists( "Vidya\\REST\\{$this->object_type}" ) ) {
             require "$models_path/{$this->object_type}.php";
         }
 
@@ -95,7 +98,7 @@ class RESTController {
 
         // Call the static CRUD method on the target object type, die with error 400 if any error occurs
         try {
-            $data = call_user_func_array ( array( "Vidya\\{$this->object_type}", $action ), $this->action_args );
+            $data = call_user_func_array ( array( "Vidya\\REST\\{$this->object_type}", $action ), $this->action_args );
         } catch(\Exception $e) {
             $this->bad_request( $e->getMessage() );
         }
