@@ -44,7 +44,9 @@ class PluginCommons {
     protected $rest_controller = null;
 
 
-
+    protected static function yo() {
+        echo "Yo\n";
+    } 
 
     // /**
     //  * Class constructor
