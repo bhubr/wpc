@@ -35,7 +35,7 @@ class PluginCommons {
     );
     protected $strings_js;
     protected $notice_view = array();
-    protected $admin_pages_hooks;
+    protected $admin_pages_hooks = array();
 
     /**
      * Mustache engine instance reference
