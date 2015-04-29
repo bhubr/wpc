@@ -49,11 +49,6 @@ class PluginCommons {
     protected $rest_controller = null;
 
 
-    public static function yo() {
-        echo "Yo " . __FILE__ . "\n";
-        REST\Controller::yo();
-    } 
-
     // /**
     //  * Class constructor
     //  */

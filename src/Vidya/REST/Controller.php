@@ -19,9 +19,6 @@ class Controller {
      * Store the object type (PostModel, TermModel, etc.)
      */
     protected $object_type;
-    public static function yo() {
-        echo "Yo " . __FILE__ . "\n";
-    } 
 
     /**
      * Class constructor
