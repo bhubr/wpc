@@ -3,6 +3,11 @@ namespace Vidya;
 
 //require_once 'functions.php';
 //require_once 'vendor/autoload.php';
+
+require_once "REST/Controller.php";
+require_once 'REST/models/PostModel.php';
+require_once 'REST/models/TermModel.php';
+
 error_reporting(E_ALL);
 /**
  * Check if the request is an AJAX request
@@ -46,7 +51,6 @@ class PluginCommons {
 
     public static function yo() {
         echo "Yo " . __FILE__ . "\n";
-        require "REST/Controller.php";
         REST\Controller::yo();
     } 
 
@@ -170,9 +174,9 @@ class PluginCommons {
         if( preg_match( $rest_url_pattern, $_SERVER['REQUEST_URI'], $matches ) === 0 ) {
             return false;
         }
-        if( !class_exists('Vidya\REST\Controller' ) ) {
-            require "REST/Controller.php";
-        }
+        // if( !class_exists('Vidya\REST\Controller' ) ) {
+        //     require "REST/Controller.php";
+        // }
         $this->rest_controller = new REST\Controller( $matches );
     }
 
