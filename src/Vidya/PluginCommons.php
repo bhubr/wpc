@@ -114,11 +114,11 @@ class PluginCommons {
         add_action( 'init', array(&$this, 'init') );
         add_action('plugins_loaded', array(&$this, 'load_textdomain'));
 
-        register_activation_hook( realpath(__DIR__ . "/../{$this->plugin_name}/{$this->plugin_name}.php"), array( &$this, 'create_term_meta_table' ) );
+        register_activation_hook( realpath(__DIR__ . "/../../../../../../{$this->plugin_name}/{$this->plugin_name}.php"), array( &$this, 'create_term_meta_table' ) );
 
         // Instantiate Mustache engine
         $this->m = new \Mustache_Engine( array(
-            'loader' => new \Mustache_Loader_FilesystemLoader(realpath(__DIR__ . '/..') . "/{$this->plugin_name}/templates")
+            'loader' => new \Mustache_Loader_FilesystemLoader(realpath(__DIR__ . '/../../../../../..') . "/{$this->plugin_name}/templates")
         ));
 
         $this->view = array(
