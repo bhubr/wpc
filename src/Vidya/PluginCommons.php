@@ -144,7 +144,7 @@ class PluginCommons {
     /**
      * Get the unique singleton instance
      */
-    public static function get_instance($config)
+    public static function get_instance( $config = null )
     {
         if( is_null( static::$instance ) ) {
             $class = get_called_class();
