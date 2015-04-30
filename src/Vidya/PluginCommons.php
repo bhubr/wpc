@@ -1,14 +1,10 @@
 <?php
 namespace Vidya;
 
-//require_once 'functions.php';
-//require_once 'vendor/autoload.php';
-
 require_once "REST/Controller.php";
 require_once 'REST/models/PostModel.php';
 require_once 'REST/models/TermModel.php';
 
-error_reporting(E_ALL);
 /**
  * Check if the request is an AJAX request
  */
@@ -18,6 +14,10 @@ if( !function_exists( 'Vidya\is_ajax' ) ) {
     }
 }
 
+
+if( !defined( 'DIRECTORIES_UP' ) ) {
+    define('DIRECTORIES_UP', "/../../../../../..");
+}
 
 
 /**
@@ -113,12 +113,14 @@ class PluginCommons {
         add_action( 'init', array(&$this, 'init') );
         add_action('plugins_loaded', array(&$this, 'load_textdomain'));
 
-        register_activation_hook( realpath(__DIR__ . "/../../../../../../{$this->plugin_name}/{$this->plugin_name}.php"), array( &$this, 'create_term_meta_table' ) );
+        $plugins_dir = realpath( plugin_dir_path( __FILE__ ) . DIRECTORIES_UP );
+
+        register_activation_hook( "{$plugins_dir}/{$this->plugin_name}/{$this->plugin_name}.php", array( &$this, 'create_term_meta_table' ) );
 
         // Instantiate Mustache engine
         $this->m = new \Mustache_Engine( array(
-            'loader' => new \Mustache_Loader_FilesystemLoader(realpath(__DIR__ . '/../../../../../..') . "/{$this->plugin_name}/templates")
-        ));
+            'loader' => new \Mustache_Loader_FilesystemLoader("{$plugins_dir}/{$this->plugin_name}/templates")
+        ) );
 
         $this->view = array(
             'url' => array(

@@ -25,7 +25,6 @@ class TermModel extends BaseModel {
 
     public static function init( $taxonomy ) {
         static::$taxonomy = $taxonomy;
-        error_log('taxonomy: ' . static::$taxonomy);
         static::$meta_key = "_{$taxonomy}_meta";
     }
 

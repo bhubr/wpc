@@ -100,7 +100,6 @@ class Controller {
             $this->bad_request( $e->getMessage() );
         }
         //if( !empty( $_FILES ) ) {
-        error_log(serialize($_POST));
         if( isset( $_POST['_thumbnail_id'] ) ) {
             //foreach( $_FILES as $file_id => $file ) {
                 $post_id = $this->object_type === 'PostModel' ? $data['id'] : 0;
