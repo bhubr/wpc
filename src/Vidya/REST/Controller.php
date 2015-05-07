@@ -76,7 +76,35 @@ class Controller {
         die( $message );
     }
 
+    /**
+     * Die with error 403 (Forbidden)
+     *
+     * Here we don't want to be accessible to non-administrative users
+     * We check:
+     *   - user rights
+     *   - wp nonce
+     */
+    function forbidden( $message ) {
+        header("HTTP/1.0 403 Forbidden");
+        die( $message );
+    }
+
+    function verify_nonce() {
+        $request_headers = getallheaders();
+        if( !array_key_exists( 'X-WP-Nonce', $request_headers ) ) {
+            $this->forbidden( 'fatal: missing headers' );
+        }
+        // check wp nonce
+        // See https://codex.wordpress.org/Function_Reference/wp_verify_nonce
+        $nonce = $request_headers['X-WP-Nonce'];
+        if ( ! wp_verify_nonce( $nonce, 'my-nonce' ) ) {
+            $this->forbidden( 'fatal: wrong value' );
+        }
+    }
+
     function do_action() {
+        $this->verify_nonce();
+
         $models_path = __DIR__ . '/models';
         if( !class_exists( "Vidya\\REST\\{$this->object_type}" ) ) {
             require "$models_path/{$this->object_type}.php";
