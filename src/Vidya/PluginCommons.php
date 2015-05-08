@@ -286,8 +286,8 @@ class PluginCommons {
      */
     function frontend_init_shortcodes()
     {
-        $shortcodes_file = realpath( __DIR__ . "/../{$this->plugin_name}/{$this->plugin_name}-shortcodes.php" );
-        if( file_exists( $shortcodes_file ) ) {
+        $shortcodes_file = realpath( __DIR__ . DIRECTORIES_UP . "/{$this->plugin_name}/{$this->plugin_name}-shortcodes.php" );
+        if( $shortcodes_file ) {
             require_once( $shortcodes_file );
         }
     }
