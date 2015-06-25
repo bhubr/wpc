@@ -5,15 +5,6 @@ require_once "REST/Controller.php";
 require_once 'REST/models/PostModel.php';
 require_once 'REST/models/TermModel.php';
 
-/**
- * Check if the request is an AJAX request
- */
-if( !function_exists( 'Vidya\is_ajax' ) ) {
-    function is_ajax() {
-        return (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest');
-    }
-}
-
 
 if( !defined( 'DIRECTORIES_UP' ) ) {
     define('DIRECTORIES_UP', "/../../../../../..");
@@ -49,34 +40,6 @@ class PluginCommons {
     protected $rest_controller = null;
 
 
-    // /**
-    //  * Class constructor
-    //  */
-    // function __construct( $config ) 
-    // {
-    //     // Return existing singleton if exists
-    //     if( !is_null( self::$instance ) ) {
-    //         return self::$instance;
-    //     }
-
-    //     $this->constructor( $config );
-
-    //     // Populate static instance reference
-    //     self::$instance = $this;
-    // }
-
-
-    // /**
-    //  * Get the unique singleton instance
-    //  */
-    // public static function get_instance()
-    // {
-    //     if( is_null( self::$instance ) ) {
-    //         self::$instance = new Portfolios();
-    //     }
-    //     return self::$instance;
-    // }
-
 
     /**
      * Class constructor
@@ -92,45 +55,17 @@ class PluginCommons {
             $this->$k = $v;
         }
 
-        // Setup textdomain and option_name
-        $this->textdomain = str_replace('-', '_', $this->plugin_name);
-        $this->option_name = $this->textdomain . '_options';
-
-        // Retrieve options
-        $options = get_option($this->option_name);
-
-        $temp_options = $this->default_options;
-        if( !empty ($options)) {
-          foreach($options as $key => $value) {
-                $temp_options[$key] = $options[$key];
-            }
-        }
-        // else {
-        //     $this->options = $this->default_options;
-        // }
-        $this->options = $temp_options;
+        $this->setup_textdomain();
+        $this->setup_options();
 
         add_action( 'init', array(&$this, 'init') );
-        add_action('plugins_loaded', array(&$this, 'load_textdomain'));
 
         $plugins_dir = realpath( plugin_dir_path( __FILE__ ) . DIRECTORIES_UP );
-
         register_activation_hook( "{$plugins_dir}/{$this->plugin_name}/{$this->plugin_name}.php", array( &$this, 'create_term_meta_table' ) );
 
-        // Instantiate Mustache engine
-        $this->m = new \Mustache_Engine( array(
-            'loader' => new \Mustache_Loader_FilesystemLoader("{$plugins_dir}/{$this->plugin_name}/templates")
-        ) );
+        $this->setup_mustache($plugins_dir);
+        $this->setup_base_view();
 
-        $this->view = array(
-            'url' => array(
-                'home'  => home_url(),
-                'rest'  => home_url('/' . $this->options['rest_path'] ),
-                'theme' => get_template_directory_uri(),
-                'plugin' => home_url("wp-content/plugins/{$this->plugin_name}")
-            ),
-            'options' =>  $this->options 
-        );
 
         if( property_exists( $this, 'actions' ) ) {
             foreach( $this->actions as $action => $callback ) {
@@ -140,6 +75,63 @@ class PluginCommons {
 
         // Populate static instance reference
         static::$instance = $this;
+    }
+
+
+    /**
+     * Retrieve options
+     */
+    protected function setup_options()
+    {
+        $options = get_option($this->option_name);
+
+        $temp_options = $this->default_options;
+        if( !empty ($options)) {
+          foreach($options as $key => $value) {
+                $temp_options[$key] = $options[$key];
+            }
+        }
+        $this->options = $temp_options;
+    }
+
+
+    /**
+     * Setup textdomain and option_name
+     */
+    protected function setup_textdomain()
+    {
+        $this->textdomain = str_replace('-', '_', $this->plugin_name);
+        $this->option_name = $this->textdomain . '_options';
+        add_action('plugins_loaded', array(&$this, 'load_textdomain'));
+    }
+
+
+    /**
+     * Setup template engine
+     */
+    protected function setup_mustache($plugins_dir)
+    {
+        // Instantiate Mustache engine
+        $this->m = new \Mustache_Engine( array(
+            'loader' => new \Mustache_Loader_FilesystemLoader("{$plugins_dir}/{$this->plugin_name}/templates")
+        ) );
+    }
+
+
+    /**
+     * Setup base view data
+     */
+    protected function setup_base_view()
+    {
+        $this->view = array(
+            'url' => array(
+                'home'  => home_url(),
+                'rest'  => home_url('/' . $this->options['rest_path'] ),
+                'theme' => get_template_directory_uri(),
+                'plugin' => home_url("wp-content/plugins/{$this->plugin_name}")
+            ),
+            'options' =>  $this->options 
+        );
     }
 
 
@@ -159,22 +151,17 @@ class PluginCommons {
     /**
      * Detect a REST API request, and setup REST controller if relevant
      */
-    public function if_rest_setup() {
+    public function setup_rest() {
+        return $this->rest_controller->is_rest();
         // If plugin doesn't use REST API or the resquest isn't an AJAX request
-        if( !$this->use_rest || !is_ajax() ) {
-//        if( !is_ajax() ) {
-            return false;
-        }
-        // Redirect AJAX requests matching the REST API relative URL to RESTController
-        $rest_path = preg_quote( $this->options['rest_path'], '/' );
-        $rest_url_pattern = '/.*\/' . $rest_path .'\/(\w+)\/?(\d+)?/';
-        if( preg_match( $rest_url_pattern, $_SERVER['REQUEST_URI'], $matches ) === 0 ) {
-            return false;
-        }
+//         if( !$this->use_rest || !is_ajax() ) {
+// //        if( !is_ajax() ) {
+//             return false;
+//         }
         // if( !class_exists('Vidya\REST\Controller' ) ) {
         //     require "REST/Controller.php";
         // }
-        $this->rest_controller = new REST\Controller( $matches );
+
     }
 
     /**
@@ -195,10 +182,12 @@ class PluginCommons {
 
         foreach( $this->types as $type => $args ) {
             register_post_type( $type, $args );
+            $this->rest_controller->register_type($type, $args['rest_type']);
         }
         foreach( $this->taxonomies as $taxonomy => $def ) {
             if( array_key_exists('args', $def ) ) {
                 register_taxonomy( $taxonomy, $def['post_type'], $def['args'] );
+                $this->rest_controller->register_taxonomy($taxonomy, $def['rest_type']);
             }
             if( array_key_exists('has_meta', $def ) && $def['has_meta'] ) {
                 $this->init_taxonomy_meta( $taxonomy );
@@ -211,9 +200,11 @@ class PluginCommons {
      */
     function init()
     {
+        $this->rest_controller = new REST\Controller( $this->options['rest_path'] );
         $this->init_custom_types();
+        $this->rest_controller->post_init();
 
-        if( is_admin() || $this->if_rest_setup() ) {
+        if( is_admin() || $this->rest_controller->is_rest() ) {
             $this->init_backend();
         }
         else {
@@ -362,8 +353,14 @@ class PluginCommons {
         }
         else {
 
-            $main_js_deps = array( "{$this->plugin_name}-$handle_dashed-templates", 'vidya-string-functions', 'jquery-ui-sortable', 'jquery-ui-draggable', 'jquery-ui-droppable' );
+            $main_js_deps = array( "{$this->plugin_name}-$handle_dashed-templates", 'vidya-string-functions' ); //, 'jquery-ui-sortable', 'jquery-ui-draggable', 'jquery-ui-droppable' );
 
+            if( array_key_exists('remove_scripts', $this->admin_pages[$handle])) {
+                //var_dump($this->admin_pages[$handle]['scripts']);die();
+                foreach( $this->admin_pages[$handle]['remove_scripts'] as $script_handle ) {
+                    wp_dequeue_script($script_handle);
+                }
+            }
             if( array_key_exists('scripts', $this->admin_pages[$handle])) {
                 //var_dump($this->admin_pages[$handle]['scripts']);die();
                 foreach( $this->admin_pages[$handle]['scripts'] as $script_handle => $script_def ) {
@@ -403,7 +400,12 @@ class PluginCommons {
             $this->admin_pages_hooks["toplevel_page_$handle"] = $handle;
             add_menu_page( $title, $title, $capacity, $handle, array(&$this, "page_$handle"), '', 30 + rand() * 5 );
             //add_submenu_page( "edit.php?post_type={$post_type}", $title, $title, $capacity, $handle, array(&$this, "page_$handle") );
-            add_action( 'admin_head', array(&$this, "page_{$handle}_js") );
+            if( $_GET['page'] === $handle ) {
+                add_action( 'admin_head', array(&$this, "page_{$handle}_js") );
+                if( is_callable(array($this, "page_{$handle}_meta"))) {
+                    add_action( 'admin_enqueue_scripts', array(&$this, "page_{$handle}_meta") );
+                }
+            }
         }
     }
 

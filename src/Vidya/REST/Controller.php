@@ -1,6 +1,11 @@
 <?php
 namespace Vidya\REST;
+require_once 'Http.php';
+require_once 'Inflect.php';
+
 class Controller {
+
+    protected static $instance = null;
 
     protected $path_prefix = '';
     protected $action_args = array();
@@ -19,30 +24,45 @@ class Controller {
      * Store the object type (PostModel, TermModel, etc.)
      */
     protected $object_type;
+    private $_is_rest = false;
+
+    protected $url_bases = [];
+    protected $base_url; // = '/rest';
 
     /**
      * Class constructor
      */
-    function __construct( $url_matches ) {
-        $this->path_prefix = $url_matches[1];
-        $post_types = get_post_types();
-        $taxonomies = get_taxonomies();
+    function __construct( $rest_path ) {
+        if( self::$instance !== null ) {
+            return self::$instance;
+        }
+
+        // Return if not ajax
+        if( !Http::is_ajax() ) { // || preg_match( $rest_url_pattern, $_SERVER['REQUEST_URI'], $url_matches ) === 0 ) {
+            self::$instance = $this;
+            return;
+        }
 
         // Not found if no rights
         if( ! current_user_can('switch_themes') ) {
-            $this->not_found();
+            Http::forbidden();
         }
 
-        // Check if targeted object is post or term, send 404 if it's neither or set obj type accordingly.
-        if( array_key_exists( $this->path_prefix, $post_types ) ) {
-            $this->object_type = 'PostModel';
+        $this->_is_rest = true;
+        $this->base_url =  '/' . $rest_path;
+    }
+
+    function post_init() {
+        if( !$this->_is_rest ) {
+            return;
         }
-        else if( array_key_exists( $this->path_prefix, $taxonomies ) ) {
-            $this->object_type = 'TermModel';
+
+        // Redirect AJAX requests matching the REST API relative URL to RESTController
+        if( !$this->parse_path() ) {
+            self::$instance = $this;
+            return;
         }
-        else {
-            $this->not_found();
-        }
+
 
         // Pass the object type and id except for create
         $this->action_args = array( $url_matches[1] );
@@ -52,58 +72,68 @@ class Controller {
         
         add_action( 'wp_loaded', array(&$this, 'do_ajax_after_load') );
 
+        self::$instance = $this;
     }
 
-    /**
-     * Die with error 404 (Not Found)
-     *
-     * See http://www.bennadel.com/blog/2400-handling-forbidden-restful-requests-401-vs-403-vs-404.htm
-     * Here we don't want to be visible to non-logged-in users
-     */
-    function not_found() {
-        header("HTTP/1.0 404 Not Found");
-        wp_die('Not Found');
-    }
 
-    /**
-     * Die with error 400 (Bad Request)
-     *
-     * See http://www.bennadel.com/blog/2400-handling-forbidden-restful-requests-401-vs-403-vs-404.htm
-     * Here we don't want to be visible to non-logged-in users
-     */
-    function bad_request( $message ) {
-        header("HTTP/1.0 400 Bad Request");
-        die( $message );
-    }
+    function parse_path() {
 
-    /**
-     * Die with error 403 (Forbidden)
-     *
-     * Here we don't want to be accessible to non-administrative users
-     * We check:
-     *   - user rights
-     *   - wp nonce
-     */
-    function forbidden( $message ) {
-        header("HTTP/1.0 403 Forbidden");
-        die( $message );
-    }
-
-    function verify_nonce() {
-        $request_headers = getallheaders();
-        if( !array_key_exists( 'X-WP-Nonce', $request_headers ) ) {
-            $this->forbidden( 'fatal: missing headers' );
+        $rest_path_escaped = preg_quote( $this->base_url, '/' );
+        // $rest_url_pattern = '/.*' . $rest_path_escaped .'\/(\w+)\/?(\d+)?/';
+        $rest_url_pattern = '/(' . $rest_path_escaped .'\/\w+)\/?(\d+)?/';
+        if( preg_match( $rest_url_pattern, $_SERVER['REQUEST_URI'], $url_matches ) === 0 ) {
+            return false;
         }
-        // check wp nonce
-        // See https://codex.wordpress.org/Function_Reference/wp_verify_nonce
-        $nonce = $request_headers['X-WP-Nonce'];
-        if ( ! wp_verify_nonce( $nonce, 'my-nonce' ) ) {
-            $this->forbidden( 'fatal: wrong value' );
+        // var_dump($_SERVER['REQUEST_URI']);
+        // var_dump($rest_url_pattern);
+        // var_dump($url_matches);
+        // var_dump($this->url_bases);
+        // var_dump($this->url_bases[$url_matches[1]]);
+        // die('ok');
+
+        $this->path_prefix = $url_matches[1];
+        if( !array_key_exists($this->path_prefix, $this->url_bases ) ) {
+            return false;
         }
+        $descriptor = $this->url_bases[$this->path_prefix];
+        $this->object_type = ucfirst($descriptor['object_type']) . 'Model';
+        return true;
+        // Http::json($url_matches);
+        // $post_types = get_post_types();
+        // $taxonomies = get_taxonomies();
+
+        // // Check if targeted object is post or term, send 404 if it's neither or set obj type accordingly.
+        // if( array_key_exists( $this->path_prefix, $post_types ) ) {
+        //     $this->object_type = 'PostModel';
+        // }
+        // else if( array_key_exists( $this->path_prefix, $taxonomies ) ) {
+        //     $this->object_type = 'TermModel';
+        // }
+        // self::$path = $_SERVER['REQUEST_URI'];
+        // return array_key_exists(self::$path, self::$url_bases);
     }
 
-    function do_action() {
-        $this->verify_nonce();
+
+    public function is_rest()
+    {
+        return $this->_is_rest;
+    }
+
+
+    /**
+     * Get the unique singleton instance
+     */
+    public static function get_instance()
+    {
+        if( is_null( self::$instance ) ) {
+            self::$instance = new Controller();
+        }
+        return self::$instance;
+    }
+
+
+    function process_request() {
+        Http::verify_nonce();
 
         $models_path = __DIR__ . '/models';
         if( !class_exists( "Vidya\\REST\\{$this->object_type}" ) ) {
@@ -125,7 +155,7 @@ class Controller {
         try {
             $data = call_user_func_array ( array( "Vidya\\REST\\{$this->object_type}", $action ), $this->action_args );
         } catch(\Exception $e) {
-            $this->bad_request( $e->getMessage() );
+            Http::bad_request( $e->getMessage() );
         }
         //if( !empty( $_FILES ) ) {
         if( isset( $_POST['_thumbnail_id'] ) ) {
@@ -139,16 +169,33 @@ class Controller {
         }
 
         // Send the response
-        header('Content-Type: application/json');
-        echo json_encode( $data );
-        wp_die();
+        Http::json( $data );
     }
 
 
     function do_ajax_after_load() {
-        add_action( 'wp_ajax_' . $this->path_prefix, array(&$this,'do_action') );
+        add_action( 'wp_ajax_' . $this->path_prefix, array(&$this,'process_request') );
         $_REQUEST['action'] = $this->path_prefix;
         require_once( ABSPATH . 'wp-admin/admin-ajax.php' );
+    }
+
+    function register_url($name, $type, $plugin_type) {
+        $plural = \Inflect::pluralize($name);
+        $url_base = $this->base_url . '/' . $plural;
+        $this->url_bases[$url_base] = [
+            'singular'     => $name,
+            'object_type'  => $type,
+            'payload_type' => $plugin_type
+        ];
+    }
+
+
+    function register_taxonomy($taxo, $rest_type) {
+        $this->register_url($taxo, 'term', $rest_type);
+    }
+
+    function register_type($type, $rest_type) {
+        $this->register_url($type, 'post', $rest_type);
     }
 
 
