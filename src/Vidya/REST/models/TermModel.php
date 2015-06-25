@@ -160,7 +160,7 @@ class TermModel extends BaseModel {
         self::init( $taxonomy );
         $terms = get_terms( static::$taxonomy, array( 'hide_empty' => $hide_empty ) );
         if( is_wp_error( $terms ) ) {
-            throw new \Exception("No terms where found in this taxonomy");
+            throw new \Exception("No terms where found in this taxonomy: $taxonomy");
         }
         $terms_with_metas = array();
         foreach( $terms as $term ) {

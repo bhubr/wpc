@@ -65,10 +65,7 @@ class Controller {
 
 
         // Pass the object type and id except for create
-        $this->action_args = array( $url_matches[1] );
-        if( count( $url_matches ) > 2 ) {
-            $this->action_args[] = intval( $url_matches[2] );
-        }
+        // $this->action_args = array( $url_matches[1] );
         
         add_action( 'wp_loaded', array(&$this, 'do_ajax_after_load') );
 
@@ -97,6 +94,10 @@ class Controller {
         }
         $descriptor = $this->url_bases[$this->path_prefix];
         $this->object_type = ucfirst($descriptor['object_type']) . 'Model';
+        $this->action_args = array( $descriptor['singular'] );
+        if( count( $url_matches ) > 2 ) {
+            $this->action_args[] = intval( $url_matches[2] );
+        }
         return true;
         // Http::json($url_matches);
         // $post_types = get_post_types();
@@ -150,6 +151,9 @@ class Controller {
             $this->action_args[] = $_POST;
         }
         $action = $this->method_action_map[$method];
+        if( $action === 'read' && count( $this->action_args ) === 1 ) {
+            $action = 'read_all';
+        }
 
         // Call the static CRUD method on the target object type, die with error 400 if any error occurs
         try {
