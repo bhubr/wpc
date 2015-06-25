@@ -123,6 +123,7 @@ abstract class BaseModel {
                     continue;
                 }
             }
+            // TODO: payload wrapper that implements Strategy pattern
             $map_fields[$f] = $is_object ? $payload->$key : $payload[$key];
             $fields_done[] = $key;
             //unset($payload->$key);
