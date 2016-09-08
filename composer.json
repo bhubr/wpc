@@ -1,5 +1,5 @@
 {
-    "name": "vidyafr/vidya-plugin-commons",
+    "name": "goneman/vidya-plugin-commons",
     "type": "library",
     "description": "Boilerplate for WordPress plugins with REST API and Backbone.js admin app",
     "keywords": ["wordpress","rest","backbone"],
